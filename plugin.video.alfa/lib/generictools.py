@@ -421,6 +421,32 @@ def check_alternative_tmdb_id(item_local, tmdb_check=True):
 
             if tmdb_check: tmdb.set_infoLabels_item(item_local, seekTmdb=True, idioma_busqueda=idioma)
 
+        if 'season_TMDB_limit' in PASSWORDS['tmdb_id'][contentTitle]:
+            item_local.season_TMDB_limit = PASSWORDS['tmdb_id'][contentTitle]['season_TMDB_limit']
+        if 'TVSHOW_RENUMBER' in PASSWORDS['tmdb_id'][contentTitle] and item_local.channel:
+            try:
+                from modules import renumbertools
+                TVSHOW_RENUMBER = renumbertools.TAG_TVSHOW_RENUMERATE
+                command = PASSWORDS['tmdb_id'][contentTitle][TVSHOW_RENUMBER].get('command', 'update')
+                title_ = item_local.contentSerieName
+                for key, value in PASSWORDS['tmdb_id'][contentTitle][TVSHOW_RENUMBER].items():
+                    if value and isinstance(value, dict) and renumbertools.TAG_SEASON_EPISODE in value:
+                        title_ = key
+                        break
+                data = PASSWORDS['tmdb_id'][contentTitle][TVSHOW_RENUMBER].get(title_, {}).get(renumbertools.TAG_SEASON_EPISODE, [])
+                write = False if command in ['delete'] else True
+                renumerate_list = renumbertools.get_json_renumerate(item_local.channel.lower())
+                for title in list(renumerate_list.keys()):
+                    if title.lower() == title_.lower():
+                        if command in ['delete', 'reset'] or (command in ['update'] and not write):
+                            renumbertools.write_data(item_local.channel.lower(), title, [], verbose=False)
+                        if command in ['update']:
+                            write = False
+                if write:
+                    renumbertools.write_data(item_local.channel.lower(), title_, data, verbose=False)
+            except Exception:
+                logger.error(traceback.format_exc())
+
 
 def set_tmdb_to_json(elem, title_search={}, title='', contentType='', tmdb_check=True):
 

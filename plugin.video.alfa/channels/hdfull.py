@@ -34,10 +34,10 @@ canonical = {
              'channel': 'hdfull', 
              'host': config.get_setting("current_host", 'hdfull', default=''), 
              "host_alt": ["https://hdfull.today/", "https://hdfull.sbs/", 
-                          "https://www3.hdfull.one/", "https://hdfull.one/", "https://hdfull.org/"], 
+                          "https://www3.hdfull.one/", "https://hdfull.org/"], 
              "host_alt_main": 2, 
              "host_verification": '%slogin', 
-             "host_black_list": ["https://hd-full.biz/", "https://hdfull.cfd/",
+             "host_black_list": ["https://hdfull.one/", "https://hd-full.biz/", "https://hdfull.cfd/",
                                  "https://www2.hdfull.one/", "https://hdfull.help/", "https://hdfull.cv/", "https://hdfull.blog/",
 
                                  "https://hd-full.me/", 
@@ -67,11 +67,8 @@ canonical = {
              'data_js': ''
             }
 host = canonical['host'] or canonical['host_alt'][0]
-host_main = canonical['host_alt'][canonical.get('host_alt_main', 0)]
-host_save = host
 host_thumb = 'https://hdfullcdn.cc/'
 _silence = config.get_setting('silence_mode', channel=canonical['channel'])
-if host in canonical['canonical_no_check_list']: canonical['canonical_check'] = False
 
 timeout = (5, 20)
 kwargs = {}
@@ -127,6 +124,9 @@ AlfaChannel = DictionaryAllChannel(host, movie_path=movie_path, tv_path=tv_path,
                                    idiomas=IDIOMAS, language=language, list_language=list_language, list_servers=list_servers, 
                                    list_quality_movies=list_quality_movies, list_quality_tvshow=list_quality_tvshow, 
                                    channel=canonical['channel'], actualizar_titulos=True, url_replace=url_replace, debug=debug)
+host_main = canonical['host_alt'][canonical.get('host_alt_main', 0)]
+host_save = host
+if host in canonical['canonical_no_check_list']: canonical['canonical_check'] = False
 
 
 """ CACHING HDFULL PARAMETERS """

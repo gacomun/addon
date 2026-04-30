@@ -25,9 +25,9 @@ forced_proxy_opt = 'ProxySSL'
 canonical = {
              'channel': 'dontorrent', 
              'host': config.get_setting("current_host", 'dontorrent', default=''), 
-             'host_alt': ["https://dontorrent.pink/", "https://lilatorrent.com/", "https://todotorrents.org/", "https://elitedivx.net/"], 
-             'host_alt_new': ["https://dontorrent.pink/"], 
-             'host_black_list': ["https://dontorrent.cfd/", 
+             'host_alt': ["https://dontorrent.racing/", "https://lilatorrent.com/", "https://todotorrents.org/", "https://elitedivx.net/"], 
+             'host_alt_new': ["https://dontorrent.reisen/"], 
+             'host_black_list': ["https://dontorrent.reisen/", "https://dontorrent.pink/", "https://dontorrent.cfd/", 
                                  "https://dontorrent.photos/", "https://dontorrent.promo/", "https://dontorrent.info/", 
                                  "https://dontorrent.prof/", "https://dontorrent.club/", "https://www21.dontorrent.link/", 
                                  "https://dontorrent.sarl/", "https://dontorrent.gripe/", "https://reinventorrent.org/", 
@@ -92,7 +92,6 @@ canonical = {
 host = canonical['host'] or canonical['host_alt'][0]
 channel = canonical['channel']
 categoria = channel.capitalize()
-host_new = True if canonical['host'] in canonical.get('host_alt_new', []) else False
 domain_torrent = 'dontorrent.foo'
 host_torrent = host if 'dontorrent' in host and not '.in/' in host else ''
 host_torrent_referer = host
@@ -159,6 +158,7 @@ AlfaChannel = DictionaryAllChannel(host, movie_path=movie_path, tv_path=tv_path,
                                    idiomas=IDIOMAS, language=language, list_language=list_language, list_servers=list_servers, 
                                    list_quality_movies=list_quality_movies, list_quality_tvshow=list_quality_tvshow, 
                                    channel=canonical['channel'], actualizar_titulos=True, url_replace=url_replace, debug=debug)
+host_new = True if canonical['host'] in canonical.get('host_alt_new', []) else False
 
 
 def mainlist(item):
@@ -216,7 +216,6 @@ def configuracion(item):
 
 
 def submenu(item):
-    global host_new
     logger.info()
 
     itemlist = []
@@ -853,6 +852,7 @@ def search(item, texto, **AHkwargs):
     logger.info()
     kwargs.update(AHkwargs)
 
+    host_new = True if canonical['host'] in canonical.get('host_alt_new', []) else False
     texto = texto.replace(" ", "%20")
 
     try:
