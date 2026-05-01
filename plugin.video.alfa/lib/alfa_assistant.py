@@ -264,6 +264,91 @@ JS_CODE_CLICK_ON_JWPLAYER = """
 
 ## Comunica con el navegador Alfa Assistant ##################################################################################################################################
 #
+# Ejecuta JsCode y devuelve el resultado
+#
+# Uso típico: 
+#
+#   from lib.alfa_assistant import is_alfa_installed, get_js_result
+#   cf_assistant = True if is_alfa_installed() else False
+#   jsCode = """
+#       var a = 1;
+#       var b = 3;
+#       var c = a + b;
+#       return c;
+#   """
+#   if cf_assistant: resultado = get_js_result(url="about:blank", timeout=0.001, extraPostDelay=0, jsCode=jsCode, formatJSdata=True)
+#   ==> resultado = 4    
+#
+def get_js_result(
+    url=None,
+    timeout=3,
+    jsCode=None,
+    jsDirectCodeNoReturn=None,
+    jsDirectCode2NoReturn=None,
+    extraPostDelay=0,
+    userAgent=None,
+    debug=None,
+    headers=None,
+    malwareWhiteList=None,
+    disableCache=None,
+    closeAfter=None,
+    getData=None,
+    postData=None,
+    getCookies=None,
+    update=None,
+    alfa_s=False,
+    version=None,
+    clearWebCache=False,
+    removeAllCookies=False,
+    hardResetWebView=False,
+    keep_alive=False,
+    returnWhenCookieNameFound=None,
+    retryIfTimeout=False,
+    mute=True,
+    urlParamRemoveAllCookies=False,
+    useAdvancedWebView=False,
+    cleanObjects=False,
+    formatJSdata=False,
+):
+    return get_generic_call(
+        "getJSResult",
+        url,
+        timeout,
+        jsCode,
+        jsDirectCodeNoReturn,
+        jsDirectCode2NoReturn,
+        extraPostDelay,
+        userAgent,
+        debug,
+        headers,
+        malwareWhiteList,
+        disableCache,
+        closeAfter,
+        getData,
+        postData,
+        getCookies,
+        update,
+        alfa_s,
+        version,
+        clearWebCache,
+        removeAllCookies,
+        hardResetWebView,
+        keep_alive,
+        returnWhenCookieNameFound,
+        retryIfTimeout,
+        mute,
+        urlParamRemoveAllCookies,
+        useAdvancedWebView,
+        cleanObjects,
+        formatJSdata,
+    )
+
+
+##############################################################################################################################################################################
+
+
+## Comunica con el navegador Alfa Assistant ##################################################################################################################################
+#
 # Recupera el código fuente de los recursos visitados y las URLS
 #
 def get_source_by_page_finished(
@@ -295,6 +380,7 @@ def get_source_by_page_finished(
     urlParamRemoveAllCookies=False,
     useAdvancedWebView=False,
     cleanObjects=False,
+    formatJSdata=False,
 ):
     return get_generic_call(
         "getSourceByPageFinished",
@@ -326,6 +412,7 @@ def get_source_by_page_finished(
         urlParamRemoveAllCookies,
         useAdvancedWebView,
         cleanObjects,
+        formatJSdata,
     )
 
 
@@ -365,6 +452,7 @@ def get_urls_by_page_finished(
     urlParamRemoveAllCookies=False,
     useAdvancedWebView=False,
     cleanObjects=False,
+    formatJSdata=False,
 ):
     return get_generic_call(
         "getUrlsByPageFinished",
@@ -396,6 +484,7 @@ def get_urls_by_page_finished(
         urlParamRemoveAllCookies,
         useAdvancedWebView,
         cleanObjects,
+        formatJSdata,
     )
 
 
@@ -531,6 +620,7 @@ def get_generic_call(
     urlParamRemoveAllCookies=False,
     useAdvancedWebView=False,
     cleanObjects=False,
+    formatJSdata=False,
     retry=True,
 ):
     EXTRA_TIMEOUT_PLUS = 0
@@ -574,6 +664,7 @@ def get_generic_call(
             )
     elif not timeout:
         timeout = 0
+
     if endpoint in ["ping", "getWebViewInfo", "quit", "terminate"]:
         serverCall = URL_PING
     else:
@@ -589,7 +680,6 @@ def get_generic_call(
             base64.b64encode(url.encode("utf8")).decode("utf8"),
             str(int(timeout * 1000)),
         )
-
     if jsCode:
         serverCall += "&jsCode=%s" % base64.b64encode(jsCode.encode("utf8")).decode(
             "utf8"
@@ -846,6 +936,8 @@ def get_generic_call(
     if data:
         if endpoint in ["update"]:
             return data
+        if endpoint in ["getJSResult"] and not formatJSdata:
+            return data
         try:
             if ':"sec-ch-ua' in data:
                 data = re.sub(',?{"name":"sec-ch-ua[^"]*"[^}]*},?]', "]", data)
@@ -909,7 +1001,16 @@ def get_generic_call(
                         round((ASSISTANT_SERVERS_AGE - time.time()) / 60, 2),
                     )
                 )
+
+        if formatJSdata:
+            for html_source in data_ret.get("htmlSources", []):
+                if html_source.get("url", "") == "javascript:jscode" and html_source.get("source", ""):
+                    data_ret = base64.b64decode(html_source.get("source", ""))
+                    if PY3 and isinstance(data_ret, bytes):
+                        data_ret = "".join(chr(x) for x in bytes(data_ret))
+                    break
         return data_ret
+
     else:
         data = ""
         return data

@@ -264,9 +264,11 @@ class AlfaChannelHelper:
                          or 'javascript' in response.headers.get('Content-Type', '')):
                 response = js2py_conversion(response.data, url, resp=response, size=size_js, **kwargs)
 
-        if response.code in self.httptools.NOT_FOUND_CODES:
+        if response.code in self.httptools.NOT_FOUND_CODES \
+                         or (response.code not in self.httptools.SUCCESS_CODES \
+                         and kwargs.get('return_data_on_error', False)):
             response.content = response.data
-            response.data = ''
+            if not kwargs.get('return_data_on_error', False): response.data = ''
             if kwargs.get("soup", True):
                 response.soup = self.do_soup(response.data, encoding='utf-8')
             elif json:
@@ -2148,7 +2150,7 @@ class DictionaryAllChannel(AlfaChannelHelper):
 
     def seasons(self, item, data='', action="episodesxseason", matches_post=None, postprocess=None, 
                 seasons_search_post=None, generictools=True, seasons_list={}, finds={}, **kwargs):
-        from lib.generictools import AH_post_tmdb_seasons, AH_find_videolab_status
+        from lib.generictools import AH_post_tmdb_seasons, AH_find_videolab_status, check_alternative_tmdb_id
         from core import tmdb
 
         if not finds: finds = self.finds.copy()
@@ -2161,6 +2163,7 @@ class DictionaryAllChannel(AlfaChannelHelper):
         find_seasons_search_num_rgx = finds.get('seasons_search_num_rgx', '')
         finds_controls = finds.get('controls', {})
         profile = self.profile = finds_controls.get('profile', self.profile)
+        season_TMDB_limit = item.season_TMDB_limit if 'season_TMDB_limit' in item else finds_controls.get('season_TMDB_limit', True)
         itemlist = list()
         matches = list()
         matches_seasons = list()
@@ -2217,7 +2220,8 @@ class DictionaryAllChannel(AlfaChannelHelper):
 
         item.url = self.do_url_replace(item.url, url_replace)
 
-        if item.library_urls or finds_seasons_search:
+        if item.add_videolibrary or item.library_urls or finds_seasons_search:
+            check_alternative_tmdb_id(item, tmdb_check=False)
             config.set_setting('tmdb_cache_read', False)
             tmdb.set_infoLabels_item(item, modo_grafico, idioma_busqueda=idioma_busqueda)
             config.set_setting('tmdb_cache_read', True)
@@ -2413,6 +2417,7 @@ class DictionaryAllChannel(AlfaChannelHelper):
         host_referer = finds_controls.get('host_referer', host) or host_referer
         post = item.post or finds_controls.pop('post', None) or post
         headers = item.headers or finds_controls.get('headers', {}) or headers
+        season_TMDB_limit = item.season_TMDB_limit if 'season_TMDB_limit' in item else finds_controls.get('season_TMDB_limit', True)
         url_replace = self.url_replace = self.finds.get('url_replace', []) or self.url_replace
         url_base64 = finds_controls.get('url_base64', True)
         IDIOMAS_TMDB = finds_controls.get('IDIOMAS_TMDB', {}) or self.IDIOMAS_TMDB
@@ -2435,8 +2440,10 @@ class DictionaryAllChannel(AlfaChannelHelper):
                 if item_temp.infoLabels['number_of_seasons'] and item_temp.infoLabels['number_of_seasons'] > item.infoLabels['number_of_seasons']:
                     item.infoLabels['number_of_seasons'] = item_temp.infoLabels['number_of_seasons']
                 if item.infoLabels['number_of_seasons'] and elem['season'] > item.infoLabels['number_of_seasons']:
-                    logger.error('TEMPORADA ERRONEA: WEB: %s; TMDB: %s' % (elem['season'], item.infoLabels['number_of_seasons']))
-                    if finds_controls.get('season_TMDB_limit', True) and not BTDIGG_URL_SEARCH in item.url: continue
+                    logger.error('TEMPORADA ERRONEA: WEB: %s; TMDB: %s; PERMITIR: %s' \
+                                 % (elem['season'], item.infoLabels['number_of_seasons'], 
+                                    not season_TMDB_limit or BTDIGG_URL_SEARCH in item.url))
+                    if season_TMDB_limit and not BTDIGG_URL_SEARCH in item.url: continue
 
             elem['url'] = elem.get('url', item.url)
             if url_base64: elem['url'] = self.convert_url_base64(elem['url'], self.host, item=item)
@@ -2796,7 +2803,8 @@ class DictionaryAllChannel(AlfaChannelHelper):
                 infolabels["season"], infolabels["episode"] = renumbertools.numbered_for_trakt(item.channel, item.contentSerieName, 
                                                                             int(infolabels["season"]), int(infolabels["episode"]),
                                                                             contentSeasonRenumList=item.contentSeasonRenumList)
-                if item.contentSeasonRenum and item.contentSeasonRenum != infolabels["season"]: continue
+                if item.contentSeasonRenum and item.contentSeasonRenum != infolabels["season"] \
+                                           and item.contentSeasonRenum != item.contentSeason : continue
 
             if isinstance(do_episode_clean, list):
                 for clean_org, clean_des in do_episode_clean:
@@ -3115,6 +3123,10 @@ class DictionaryAllChannel(AlfaChannelHelper):
                         if epi.get('info', ''): item.info = epi['info']
                         matches.append(epi.copy())
                     if matches:
+                        if item.matches and isinstance(item.matches[0], _dict):
+                            for match in item.matches:
+                                if match.get('url', 'xyz') not in str(matches):
+                                    matches.append(match.copy())
                         item.matches = matches[:]
                     elif isinstance(item.matches[0], _dict):
                         matches = item.matches[:]
@@ -3187,7 +3199,7 @@ class DictionaryAllChannel(AlfaChannelHelper):
         if self.btdigg:
             if AHkwargs.get('matches'): del AHkwargs['matches']
             matches = self.find_btdigg_findvideos(item, item.matches or matches, finds_controls.get('domain_alt', DOMAIN_ALT_URLS), **AHkwargs)
-        
+
         if not matches:
             if item.emergency_urls and not item.videolibray_emergency_urls:     # Hay urls de emergencia?
                 item.armagedon = True                                           # Marcamos la situación como catastrófica 

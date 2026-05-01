@@ -348,12 +348,12 @@ def get_data_from_tmdb(tmdb_id):
     return data
 
 
-def write_data(channel, show, data):
+def write_data(channel, show, data, verbose=True):
     # Leemos el nodo "TAG_TVSHOW_RENUMERATE" del .json del canal
     dict_series = get_json_renumerate(channel)
     tvshow = show.strip()
     list_season_episode = dict_series.get(tvshow, {}).get(TAG_SEASON_EPISODE, [])
-    logger.debug("data %s" % list_season_episode)
+    logger.debug("channel: %s; show: %s; data: %s; list_season_episode: %s" % (channel, show, data, list_season_episode))
 
     if data:
         # cambiamos el orden para que se vea en orden descendente y usarse bien en el _data.json
@@ -375,8 +375,9 @@ def write_data(channel, show, data):
     else:
         message = config.get_localized_string(60445)
 
-    heading = show.strip()
-    platformtools.dialog_notification(heading, message)
+    if verbose:
+        heading = show.strip()
+        platformtools.dialog_notification(heading, message)
 
 
 if xbmcgui:

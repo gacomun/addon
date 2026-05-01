@@ -366,6 +366,8 @@ def findvideos(item):
     logger.info()
 
     kwargs['matches_post_episodes'] = episodesxseason_matches
+    kwargs['headers'] = {'Referer': item.url}
+    kwargs['post'] = 'layout=def_wlinks'
 
     return AlfaChannel.get_video_options(item, item.url, matches_post=findvideos_matches, 
                                          verify_links=False, generictools=True, findvideos_proc=True, **kwargs)
@@ -437,6 +439,8 @@ def findvideos_links(item, elem_in, elem_json):
                 elem_json['server'] = 'torrent'
                 elem_json['url'] = ''
                 for url in elem.find_all('a'):
+                    if not url.get('href', '').startswith('magnet') and \
+                       not url.get('href', '').endswith('.torrent'): continue
                     elem_json['url'] = url.get('href', '')
                     if elem_json['url'].startswith('magnet'): break
                     if elem_json['url'].endswith('.torrent'): break
@@ -448,6 +452,8 @@ def findvideos_links(item, elem_in, elem_json):
             if x == 2:
                 if elem.find('a'):
                     for url in elem.find_all('a'):
+                        if not url.get('href', '').startswith('magnet') and \
+                           not url.get('href', '').endswith('.torrent'): continue
                         elem_json['url'] = url.get('href', '')
                         if elem_json['url'].startswith('magnet'): break
                         if elem_json['url'].endswith('.torrent'): break
